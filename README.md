@@ -170,13 +170,15 @@ python -m src.predict --machine Machine_3 --model lstm
 
 ## Key Results
 
-> Results will be filled in after training. Placeholder table below.
+| Model         | Precision | Recall | F1     | ROC-AUC |
+| ------------- | --------- | ------ | ------ | ------- |
+| Random Forest | 0.9937    | 0.9718 | 0.9827 | 0.9977  |
+| XGBoost       | 0.9915    | 0.9776 | 0.9845 | 0.9971  |
+| LSTM          | —         | —      | —      | —       |
 
-| Model         | Precision | Recall | F1  | ROC-AUC |
-| ------------- | --------- | ------ | --- | ------- |
-| Random Forest | —         | —      | —   | —       |
-| XGBoost       | —         | —      | —   | —       |
-| LSTM          | —         | —      | —   | —       |
+Current recommendation: **XGBoost** is the best baseline model for the portfolio version of the
+project because it achieves the highest recall and F1 score, which is preferable in predictive
+maintenance where missing a real failure is more costly than raising an additional inspection.
 
 ---
 
@@ -188,12 +190,22 @@ python -m src.predict --machine Machine_3 --model lstm
 ============================================================
 📍 Machine:     Machine_3
 🕐 Timestamp:   2026-04-07 14:00:00
-⚙️  Model Used:  LSTM
+⚙️  Model Used:  XGBoost
 ------------------------------------------------------------
-⚠️  ALERT: High failure probability detected!
+📈 Risk Level:  High
+⚠️  Business Status: Elevated failure risk detected.
 📊 Failure Probability (next 48h): 80.4%
-🔧 Recommended Action: Schedule maintenance within 24 hours
+🧭 Interpretation: Machine_3 is likely to fail within the next 48 hours.
+🔧 Recommended Action: Schedule maintenance within 24 hours.
 ============================================================
+```
+
+Example of a low-risk prediction:
+
+```text
+Machine_3 has a 0.0% predicted probability of failure in the next 48 hours.
+Risk level: Low.
+Recommended action: continue regular monitoring.
 ```
 
 ---

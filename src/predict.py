@@ -40,6 +40,7 @@ DROP_COLS: list[str] = [
 
 # Threshold above which we issue an ALERT
 ALERT_THRESHOLD: float = 0.5
+MEDIUM_RISK_THRESHOLD: float = 0.2
 
 
 # ── Data helpers ──────────────────────────────────────────────────────────────
@@ -124,8 +125,20 @@ def _predict_sklearn(X: pd.DataFrame, model_path: Path) -> float:
     model = joblib.load(model_path)
     drop = [c for c in DROP_COLS if c in X.columns]
     X_clean = X.drop(columns=drop)
-    prob = model.predict_proba(X_clean.iloc[[-1]])[:, 1][0]
-    return float(prob)
+    probs = model.predict_proba(X_clean.iloc[[-1]])
+    classes = getattr(model, "classes_", np.array([0, 1]))
+
+    if probs.ndim == 1:
+        return float(probs[0])
+
+    if probs.shape[1] == 1:
+        return float(probs[0, 0]) if classes[0] == 1 else 0.0
+
+    if 1 in classes:
+        positive_idx = int(np.where(classes == 1)[0][0])
+        return float(probs[0, positive_idx])
+
+    return float(probs[0, -1])
 
 
 def _predict_lstm(X: pd.DataFrame, model_path: Path) -> float:
@@ -181,11 +194,26 @@ def _print_report(
     sep = "-" * 60
 
     if probability >= ALERT_THRESHOLD:
-        status = "⚠️  ALERT: High failure probability detected!"
-        action = "🔧 Recommended Action: Schedule maintenance within 24 hours"
+        risk_level = "High"
+        status = "⚠️  Business Status: Elevated failure risk detected."
+        interpretation = (
+            f"🧭 Interpretation: {machine_id} is likely to fail within the next 48 hours."
+        )
+        action = "🔧 Recommended Action: Schedule maintenance within 24 hours."
+    elif probability >= MEDIUM_RISK_THRESHOLD:
+        risk_level = "Medium"
+        status = "🟡 Business Status: Warning pattern detected."
+        interpretation = (
+            f"🧭 Interpretation: {machine_id} shows early degradation signals that merit review."
+        )
+        action = "🔧 Recommended Action: Inspect the machine during the next maintenance window."
     else:
-        status = "✅ Machine operating within normal parameters."
-        action = "🔧 Recommended Action: Continue regular monitoring"
+        risk_level = "Low"
+        status = "✅ Business Status: Machine operating within normal parameters."
+        interpretation = (
+            f"🧭 Interpretation: {machine_id} shows low short-term failure risk."
+        )
+        action = "🔧 Recommended Action: Continue regular monitoring."
 
     print(f"\n{bar}")
     print("🔍 PREDICTIVE MAINTENANCE SYSTEM — Automotive Line")
@@ -194,8 +222,10 @@ def _print_report(
     print(f"🕐 Timestamp:   {timestamp}")
     print(f"⚙️  Model Used:  {model_name}")
     print(sep)
+    print(f"📈 Risk Level:  {risk_level}")
     print(status)
     print(f"📊 Failure Probability (next 48h): {probability * 100:.1f}%")
+    print(interpretation)
     print(action)
     print(f"{bar}\n")
 
