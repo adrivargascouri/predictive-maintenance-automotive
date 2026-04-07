@@ -63,7 +63,8 @@ FAILURE_DEGRADATION: dict = {
 }
 
 FAILURE_WINDOW_MINUTES: int = 48 * 60  # 2 880 minutes
-AVG_FAILURES_PER_MACHINE: int = 15     # average failure events per machine
+AVG_FAILURES_PER_MACHINE: int = 6      # average failure events per machine
+MIN_FAILURE_GAP_MINUTES: int = 7 * 24 * 60  # keep events at least 7 days apart
 
 
 # ── Helper functions ─────────────────────────────────────────────────────────
@@ -82,10 +83,22 @@ def _generate_failure_times(timestamps: pd.DatetimeIndex, n_failures: int) -> li
     """
     # Reserve the first 48 h so there is always a lead-up window
     start_idx: int = FAILURE_WINDOW_MINUTES
-    positions = sorted(
-        random.sample(range(start_idx, len(timestamps)), n_failures)
-    )
-    return positions
+    end_idx: int = len(timestamps) - 1
+
+    if start_idx >= end_idx:
+        return []
+
+    candidates = list(range(start_idx, end_idx + 1))
+    random.shuffle(candidates)
+
+    selected: list[int] = []
+    for pos in candidates:
+        if all(abs(pos - prev) >= MIN_FAILURE_GAP_MINUTES for prev in selected):
+            selected.append(pos)
+            if len(selected) >= n_failures:
+                break
+
+    return sorted(selected)
 
 
 def _build_sensor_series(

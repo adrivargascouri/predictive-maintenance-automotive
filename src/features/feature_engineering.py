@@ -51,6 +51,7 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         values introduced by rolling / lag operations are dropped.
     """
     df = df.copy()
+    base_cols = set(df.columns)
 
     # Ensure temporal ordering
     df.sort_values(["machine_id", "timestamp"], inplace=True)
@@ -100,9 +101,13 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     df["day_of_week"] = df["timestamp"].dt.dayofweek   # 0=Monday, 6=Sunday
     df["is_weekend"] = (df["day_of_week"] >= 5).astype(int)
 
-    # ── Drop NaN rows introduced by rolling / lag ─────────────────────────
+    # ── Drop NaN rows introduced by rolling / lag only ────────────────────
+    # Keep original columns such as time_to_failure untouched, because they
+    # may be intentionally NaN outside pre-failure windows.
+    engineered_cols = [c for c in df.columns if c not in base_cols]
     before = len(df)
-    df.dropna(inplace=True)
+    if engineered_cols:
+        df.dropna(subset=engineered_cols, inplace=True)
     df.reset_index(drop=True, inplace=True)
     print(
         f"✅ Feature engineering complete. "

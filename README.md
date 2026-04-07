@@ -79,14 +79,14 @@ Raw Sensor Data (CSV)
 
 The dataset is **fully simulated** using `src/data/simulate_data.py`.
 
-| Property | Value |
-|---|---|
-| Machines | 5 (Machine_1 … Machine_5) |
-| Sensors | temperature (°C), vibration (mm/s), pressure (bar), rpm, current (A) |
-| Sampling rate | 1 minute |
-| Duration | 6 months (~260 000 rows per machine) |
-| Target | `failure_within_48h` (binary: 1 if failure in next 48 h) |
-| Extra | `time_to_failure` (hours until next failure event) |
+| Property      | Value                                                                |
+| ------------- | -------------------------------------------------------------------- |
+| Machines      | 5 (Machine_1 … Machine_5)                                            |
+| Sensors       | temperature (°C), vibration (mm/s), pressure (bar), rpm, current (A) |
+| Sampling rate | 1 minute                                                             |
+| Duration      | 6 months (~260 000 rows per machine)                                 |
+| Target        | `failure_within_48h` (binary: 1 if failure in next 48 h)             |
+| Extra         | `time_to_failure` (hours until next failure event)                   |
 
 Failure patterns are injected as **gradual degradation** in the 48 hours preceding each failure
 event, with added Gaussian noise for realism.
@@ -95,15 +95,76 @@ event, with added Gaussian noise for realism.
 
 ## Pipeline Overview
 
-| Step | Notebook | Script |
-|------|----------|--------|
-| 1. Data Generation | `01_data_generation.ipynb` | `src/data/simulate_data.py` |
-| 2. EDA & Preprocessing | `02_eda_and_preprocessing.ipynb` | `src/data/preprocess.py` |
-| 3. Feature Engineering | `03_feature_engineering.ipynb` | `src/features/feature_engineering.py` |
-| 4. Baseline Models | `04_baseline_models.ipynb` | `src/models/baseline.py` |
-| 5. LSTM Model | `05_lstm_model.ipynb` | `src/models/lstm_model.py` |
-| 6. Evaluation | `06_evaluation.ipynb` | `src/evaluation/metrics.py` |
-| 7. SHAP Explainability | `07_explainability_shap.ipynb` | — |
+| Step                   | Notebook                         | Script                                |
+| ---------------------- | -------------------------------- | ------------------------------------- |
+| 1. Data Generation     | `01_data_generation.ipynb`       | `src/data/simulate_data.py`           |
+| 2. EDA & Preprocessing | `02_eda_and_preprocessing.ipynb` | `src/data/preprocess.py`              |
+| 3. Feature Engineering | `03_feature_engineering.ipynb`   | `src/features/feature_engineering.py` |
+| 4. Baseline Models     | `04_baseline_models.ipynb`       | `src/models/baseline.py`              |
+| 5. LSTM Model          | `05_lstm_model.ipynb`            | `src/models/lstm_model.py`            |
+| 6. Evaluation          | `06_evaluation.ipynb`            | `src/evaluation/metrics.py`           |
+| 7. SHAP Explainability | `07_explainability_shap.ipynb`   | —                                     |
+
+---
+
+## Quick Start (Day 1)
+
+Use this section to get an end-to-end baseline running as fast as possible.
+
+### 1) Create and activate virtual environment
+
+Windows PowerShell:
+
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
+
+Linux / macOS:
+
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+### 2) Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Optional (for LSTM):
+
+```bash
+pip install -r requirements-lstm.txt
+```
+
+### 3) Run full pipeline (baseline product flow)
+
+```bash
+python -m src.run_pipeline --skip-lstm
+```
+
+This executes:
+
+- data simulation
+- preprocessing
+- feature engineering
+- baseline training (Random Forest + XGBoost)
+- evaluation metrics and figures
+
+### 4) Optional: train LSTM
+
+```bash
+python -m src.run_pipeline
+```
+
+### 5) Product-style inference
+
+```bash
+python -m src.predict --machine Machine_3 --model xgboost
+python -m src.predict --machine Machine_3 --model lstm
+```
 
 ---
 
@@ -111,11 +172,11 @@ event, with added Gaussian noise for realism.
 
 > Results will be filled in after training. Placeholder table below.
 
-| Model | Precision | Recall | F1 | ROC-AUC |
-|---|---|---|---|---|
-| Random Forest | — | — | — | — |
-| XGBoost | — | — | — | — |
-| LSTM | — | — | — | — |
+| Model         | Precision | Recall | F1  | ROC-AUC |
+| ------------- | --------- | ------ | --- | ------- |
+| Random Forest | —         | —      | —   | —       |
+| XGBoost       | —         | —      | —   | —       |
+| LSTM          | —         | —      | —   | —       |
 
 ---
 
@@ -147,35 +208,48 @@ cd predictive-maintenance-automotive
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Run notebooks in order (inside notebooks/)
+# Optional: install deep-learning dependencies for LSTM
+pip install -r requirements-lstm.txt
+
+# 3. Run complete pipeline (recommended)
+python -m src.run_pipeline --skip-lstm
+
+# 4. Optional: include LSTM training
+python -m src.run_pipeline
+
+# 5. Or run notebooks in order (inside notebooks/)
 jupyter notebook
 
-# 4. Or run scripts directly
-python src/data/simulate_data.py          # Generate raw data
-python src/data/preprocess.py             # Preprocess data
-python src/features/feature_engineering.py  # Engineer features
-python src/models/baseline.py             # Train baseline models
-python src/models/lstm_model.py           # Train LSTM model
-python src/evaluation/metrics.py          # Evaluate all models
-
-# 5. Make a prediction
-python src/predict.py --machine Machine_3 --model lstm
+# 6. Make a prediction
+python -m src.predict --machine Machine_3 --model lstm
 ```
+
+---
+
+## Suggested 3-5 Week Plan
+
+| Week         | Focus                                             | Deliverable                            |
+| ------------ | ------------------------------------------------- | -------------------------------------- |
+| 1            | Data simulation, labels, preprocessing validation | Clean train/val/test pipeline          |
+| 2            | Feature engineering + baseline models             | Baseline benchmark with metrics        |
+| 3            | LSTM training and comparison                      | Model comparison (ROC-AUC, F1, recall) |
+| 4            | SHAP + product-style reporting                    | Explainable predictions per machine    |
+| 5 (optional) | Refactor, tests, README polish                    | Interview-ready GitHub project         |
 
 ---
 
 ## Tech Stack
 
-| Tool | Purpose |
-|---|---|
-| **Python 3.10+** | Core language |
-| **pandas / numpy** | Data manipulation |
-| **scikit-learn** | Preprocessing, Random Forest, metrics |
-| **XGBoost** | Gradient boosted trees baseline |
-| **TensorFlow / Keras** | LSTM deep learning model |
-| **SHAP** | Model explainability |
-| **matplotlib / seaborn** | Visualisation |
-| **Jupyter** | Interactive notebooks |
+| Tool                     | Purpose                               |
+| ------------------------ | ------------------------------------- |
+| **Python 3.10+**         | Core language                         |
+| **pandas / numpy**       | Data manipulation                     |
+| **scikit-learn**         | Preprocessing, Random Forest, metrics |
+| **XGBoost**              | Gradient boosted trees baseline       |
+| **TensorFlow / Keras**   | LSTM deep learning model              |
+| **SHAP**                 | Model explainability                  |
+| **matplotlib / seaborn** | Visualisation                         |
+| **Jupyter**              | Interactive notebooks                 |
 
 ---
 

@@ -125,6 +125,29 @@ def train_xgboost(
     return xgb
 
 
+def _positive_class_proba(model, X: pd.DataFrame) -> np.ndarray:
+    """
+    Return probabilities for the positive class (label=1).
+
+    Handles edge cases where a model is trained on a single class and
+    ``predict_proba`` returns only one column.
+    """
+    probs = model.predict_proba(X)
+    if probs.ndim == 1:
+        return probs.astype(float)
+
+    if probs.shape[1] == 1:
+        classes = getattr(model, "classes_", np.array([0]))
+        return probs[:, 0].astype(float) if classes[0] == 1 else np.zeros(len(X))
+
+    classes = getattr(model, "classes_", np.array([0, 1]))
+    if 1 in classes:
+        idx = int(np.where(classes == 1)[0][0])
+        return probs[:, idx].astype(float)
+
+    return probs[:, -1].astype(float)
+
+
 # ── Evaluation ────────────────────────────────────────────────────────────────
 
 def _print_metrics(
@@ -147,12 +170,14 @@ def _print_metrics(
     precision = precision_score(y_true, y_pred, zero_division=0)
     recall = recall_score(y_true, y_pred, zero_division=0)
     f1 = f1_score(y_true, y_pred, zero_division=0)
-    roc_auc = roc_auc_score(y_true, y_prob)
+    roc_auc = np.nan
+    if len(np.unique(y_true)) > 1:
+        roc_auc = roc_auc_score(y_true, y_prob)
 
     print(
         f"  [{model_name}] {split_name} — "
         f"Precision: {precision:.3f} | Recall: {recall:.3f} | "
-        f"F1: {f1:.3f} | ROC-AUC: {roc_auc:.3f}"
+        f"F1: {f1:.3f} | ROC-AUC: {'n/a' if np.isnan(roc_auc) else f'{roc_auc:.3f}'}"
     )
 
 
@@ -209,10 +234,10 @@ if __name__ == "__main__":
     # ── Random Forest ─────────────────────────────────────────────────────
     rf = train_random_forest(X_train, y_train)
 
-    _print_metrics("Random Forest", "Train",
-                   y_train, rf.predict(X_train), rf.predict_proba(X_train)[:, 1])
-    _print_metrics("Random Forest", "Val",
-                   y_val, rf.predict(X_val), rf.predict_proba(X_val)[:, 1])
+    rf_train_prob = _positive_class_proba(rf, X_train)
+    rf_val_prob = _positive_class_proba(rf, X_val)
+    _print_metrics("Random Forest", "Train", y_train, rf.predict(X_train), rf_train_prob)
+    _print_metrics("Random Forest", "Val", y_val, rf.predict(X_val), rf_val_prob)
 
     joblib.dump(rf, MODELS_DIR / "random_forest.pkl")
     plot_feature_importance(rf, list(X_train.columns), "Random Forest")
@@ -220,10 +245,10 @@ if __name__ == "__main__":
     # ── XGBoost ──────────────────────────────────────────────────────────
     xgb = train_xgboost(X_train, y_train)
 
-    _print_metrics("XGBoost", "Train",
-                   y_train, xgb.predict(X_train), xgb.predict_proba(X_train)[:, 1])
-    _print_metrics("XGBoost", "Val",
-                   y_val, xgb.predict(X_val), xgb.predict_proba(X_val)[:, 1])
+    xgb_train_prob = _positive_class_proba(xgb, X_train)
+    xgb_val_prob = _positive_class_proba(xgb, X_val)
+    _print_metrics("XGBoost", "Train", y_train, xgb.predict(X_train), xgb_train_prob)
+    _print_metrics("XGBoost", "Val", y_val, xgb.predict(X_val), xgb_val_prob)
 
     joblib.dump(xgb, MODELS_DIR / "xgboost.pkl")
     plot_feature_importance(xgb, list(X_train.columns), "XGBoost")
