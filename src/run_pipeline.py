@@ -27,11 +27,13 @@ from pathlib import Path
 PROJECT_ROOT: Path = Path(__file__).resolve().parents[1]
 
 
-def _run_module(module_name: str) -> None:
+def _run_module(module_name: str, module_args: list[str] | None = None) -> None:
     """Run a Python module as a subprocess and fail fast on errors."""
-    print(f"\n>>> Running: python -m {module_name}")
+    module_args = module_args or []
+    arg_suffix = " " + " ".join(module_args) if module_args else ""
+    print(f"\n>>> Running: python -m {module_name}{arg_suffix}")
     subprocess.run(
-        [sys.executable, "-m", module_name],
+        [sys.executable, "-m", module_name, *module_args],
         cwd=str(PROJECT_ROOT),
         check=True,
     )
@@ -46,6 +48,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-lstm",
         action="store_true",
         help="Skip LSTM training step to speed up the first run",
+    )
+    parser.add_argument(
+        "--with-shap",
+        action="store_true",
+        help="Run SHAP explainability for XGBoost and export figures to assets/images",
     )
     return parser.parse_args()
 
@@ -69,6 +76,11 @@ def main() -> None:
         print("\n>>> Skipping LSTM step (--skip-lstm enabled)")
 
     _run_module("src.evaluation.metrics")
+
+    if args.with_shap:
+        _run_module("src.evaluation.shap_xgboost", ["--export-assets"])
+    else:
+        print("\n>>> Skipping SHAP step (use --with-shap to enable)")
 
     print("\n" + "=" * 72)
     print("Pipeline finished successfully.")

@@ -159,7 +159,19 @@ This executes:
 python -m src.run_pipeline
 ```
 
-### 5) Product-style inference
+### 5) Optional: run reproducible SHAP (script, no notebook required)
+
+```bash
+python -m src.evaluation.shap_xgboost --export-assets
+```
+
+Or run the full baseline pipeline including SHAP:
+
+```bash
+python -m src.run_pipeline --skip-lstm --with-shap
+```
+
+### 6) Product-style inference
 
 ```bash
 python -m src.predict --machine Machine_3 --model xgboost
@@ -269,6 +281,9 @@ pip install -r requirements-lstm.txt
 # 3. Run complete pipeline (recommended)
 python -m src.run_pipeline --skip-lstm
 
+# 3b. Run baseline pipeline and SHAP in one command
+python -m src.run_pipeline --skip-lstm --with-shap
+
 # 4. Optional: include LSTM training
 python -m src.run_pipeline
 
@@ -277,6 +292,9 @@ jupyter notebook
 
 # 6. Make a prediction
 python -m src.predict --machine Machine_3 --model lstm
+
+# 7. Run SHAP script directly (reproducible explainability)
+python -m src.evaluation.shap_xgboost --export-assets
 ```
 
 ---
