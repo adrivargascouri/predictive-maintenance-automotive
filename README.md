@@ -182,6 +182,49 @@ maintenance where missing a real failure is more costly than raising an addition
 
 ---
 
+## Explainability (SHAP)
+
+To make model decisions transparent, SHAP was run on the XGBoost baseline model using a 2,000-row
+sample from the engineered test set.
+
+Generated artifacts:
+
+- Global summary (beeswarm): `assets/images/shap_summary_xgboost.png`
+- Global importance (bar): `assets/images/shap_bar_xgboost.png`
+- Local case explanation (waterfall): `assets/images/shap_waterfall_xgboost_row0.png`
+
+![SHAP Summary Plot](assets/images/shap_summary_xgboost.png)
+
+![SHAP Feature Importance Bar Plot](assets/images/shap_bar_xgboost.png)
+
+![SHAP Local Waterfall Plot](assets/images/shap_waterfall_xgboost_row0.png)
+
+Top SHAP drivers (mean absolute contribution):
+
+1. `vibration_roll60_max`
+2. `vibration_roll30_max`
+3. `current_roll60_std`
+4. `temperature_roll60_max`
+5. `vibration_roll30_std`
+6. `temperature_roll30_max`
+7. `vibration_roll10_max`
+8. `current_roll60_mean`
+9. `current_roll60_max`
+10. `vibration_roll60_std`
+
+Interpretation:
+
+- Vibration and current trend features dominate the prediction logic.
+- This is consistent with realistic mechanical degradation signals in rotating equipment.
+- The model is not a black box anymore: each alert can be justified by concrete sensor dynamics.
+
+Interview-ready takeaway:
+
+> “For high-risk predictions, SHAP consistently highlights abnormal vibration peaks and current
+> variability as the primary contributors, which supports maintenance scheduling decisions.”
+
+---
+
 ## Product-Style Output Example
 
 ```
