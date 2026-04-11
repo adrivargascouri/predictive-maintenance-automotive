@@ -184,6 +184,20 @@ python -m src.predict --machine Machine_3 --model xgboost
 python -m src.predict --machine Machine_3 --model lstm
 ```
 
+### 7) Interactive demo (Streamlit)
+
+```bash
+pip install -r requirements-demo.txt
+streamlit run demo_streamlit.py
+```
+
+The demo lets you:
+
+- choose machine and model (XGBoost, Random Forest, LSTM)
+- view 48h failure probability and risk bucket
+- see recommended maintenance action
+- inspect recent sensor trends in real time
+
 ---
 
 ## Key Results
@@ -363,6 +377,10 @@ python -m src.predict --machine Machine_3 --model xgboost
 
 # 7. Run SHAP script directly (reproducible explainability)
 python -m src.evaluation.shap_xgboost --export-assets
+
+# 8. Launch interactive demo
+pip install -r requirements-demo.txt
+streamlit run demo_streamlit.py
 ```
 
 ---
