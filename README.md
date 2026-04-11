@@ -159,6 +159,12 @@ This executes:
 python -m src.run_pipeline
 ```
 
+For a CPU-friendly first run, use a capped sequence sample:
+
+```bash
+python -m src.run_pipeline --lstm-max-train-samples 100000 --lstm-epochs 20
+```
+
 ### 5) Optional: run reproducible SHAP (script, no notebook required)
 
 ```bash
@@ -186,11 +192,43 @@ python -m src.predict --machine Machine_3 --model lstm
 | ------------- | --------- | ------ | ------ | ------- |
 | Random Forest | 0.9937    | 0.9718 | 0.9827 | 0.9977  |
 | XGBoost       | 0.9915    | 0.9776 | 0.9845 | 0.9971  |
-| LSTM          | —         | —      | —      | —       |
+| LSTM          | 0.9623    | 0.9454 | 0.9538 | 0.9950  |
 
 Current recommendation: **XGBoost** is the best baseline model for the portfolio version of the
 project because it achieves the highest recall and F1 score, which is preferable in predictive
 maintenance where missing a real failure is more costly than raising an additional inspection.
+
+Note: the LSTM result above comes from the saved `.keras` model trained on a 100,000-sequence
+subsample for CPU-friendly experimentation. A full-sequence training run may improve or stabilise
+the deep-learning result, but for the current portfolio version XGBoost remains the stronger model.
+
+### Model Selection Rationale
+
+- **XGBoost** is the recommended production-style model for this repository because it provides the
+  best overall balance of recall, F1, training speed, and interpretability with SHAP.
+- **Random Forest** is a strong benchmark, but slightly underperforms XGBoost on recall and F1.
+- **LSTM** captures temporal structure explicitly, but on the current simulated dataset and CPU-only
+  training setup it did not beat the tree-based models.
+
+In a maintenance use case, recall is especially important because a missed failure is often more
+expensive than an extra inspection. For that reason, the portfolio recommendation remains XGBoost.
+
+---
+
+## Business Impact
+
+- Predicting failures 48 hours in advance gives maintenance teams enough time to schedule service
+  during planned downtime instead of reacting to unexpected line stoppages.
+- The product-style output translates model scores into actions, making the system easier to use by
+  operations or maintenance teams that do not work directly with ML metrics.
+- SHAP explanations make alerts auditable: when the model raises risk, the team can inspect the
+  dominant sensor patterns behind the decision.
+
+Example operational value proposition:
+
+> “Instead of responding after a breakdown, the plant can inspect machines with elevated vibration
+> and current instability before failure, reducing unplanned downtime and improving maintenance
+> planning.”
 
 ---
 
@@ -258,10 +296,36 @@ Interview-ready takeaway:
 Example of a low-risk prediction:
 
 ```text
-Machine_3 has a 0.0% predicted probability of failure in the next 48 hours.
-Risk level: Low.
-Recommended action: continue regular monitoring.
+XGBoost on Machine_3
+Probability: 0.0%
+Risk level: Low
+Recommended action: Continue regular monitoring.
+
+LSTM on Machine_3
+Probability: 0.8%
+Risk level: Low
+Recommended action: Continue regular monitoring.
 ```
+
+---
+
+## Limitations And Next Steps
+
+- The dataset is simulated, so the project demonstrates workflow and modelling practice rather than
+  performance on proprietary industrial telemetry.
+- The LSTM was trained on a 100k-sequence subsample for practical CPU runtime, so its result is not
+  the upper bound of what sequence modelling could achieve.
+- There is no live serving layer yet; predictions are exposed through a CLI rather than an API or
+  dashboard.
+- Thresholds are currently fixed. In a production setting, they should be tuned against business
+  cost assumptions such as downtime cost versus false-positive inspections.
+
+Natural next extensions:
+
+1. Train the LSTM on the full sequence set using longer runtime or GPU compute.
+2. Add a small API or Streamlit dashboard for real-time machine monitoring.
+3. Introduce cost-sensitive threshold tuning and maintenance scheduling logic.
+4. Validate the pipeline on real plant or public industrial sensor data.
 
 ---
 
@@ -287,11 +351,15 @@ python -m src.run_pipeline --skip-lstm --with-shap
 # 4. Optional: include LSTM training
 python -m src.run_pipeline
 
+# CPU-friendly LSTM test run
+python -m src.run_pipeline --lstm-max-train-samples 100000 --lstm-epochs 20
+
 # 5. Or run notebooks in order (inside notebooks/)
 jupyter notebook
 
 # 6. Make a prediction
 python -m src.predict --machine Machine_3 --model lstm
+python -m src.predict --machine Machine_3 --model xgboost
 
 # 7. Run SHAP script directly (reproducible explainability)
 python -m src.evaluation.shap_xgboost --export-assets

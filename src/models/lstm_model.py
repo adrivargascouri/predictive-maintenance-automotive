@@ -14,13 +14,15 @@ Architecture
 
 Inputs:  data/processed/train_engineered.csv
          data/processed/val_engineered.csv
-Output:  saved_models/lstm_model.h5
+Output:  saved_models/lstm_model.keras
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Tuple
+
+import argparse
 
 import numpy as np
 import pandas as pd
@@ -84,11 +86,13 @@ def create_sequences(
         - X_seq: shape (N - sequence_length, sequence_length, n_features)
         - y_seq: shape (N - sequence_length,) — label of the last step
     """
-    X_seqs, y_seqs = [], []
-    for i in range(sequence_length, len(X)):
-        X_seqs.append(X[i - sequence_length:i])
-        y_seqs.append(y[i])
-    return np.array(X_seqs, dtype=np.float32), np.array(y_seqs, dtype=np.float32)
+    n_sequences = len(X) - sequence_length
+    # sliding_window_view produces shape (n+1, 1, seq_len, F); take [:n, 0]
+    X_seq = np.lib.stride_tricks.sliding_window_view(
+        X, (sequence_length, X.shape[1])
+    )[:n_sequences, 0, :, :].astype(np.float32)
+    y_seq = y[sequence_length:].astype(np.float32)
+    return X_seq, y_seq
 
 
 # ── Model definition ──────────────────────────────────────────────────────────
@@ -222,27 +226,83 @@ def evaluate_model(
     return metrics
 
 
+# ── CLI ──────────────────────────────────────────────────────────────────────
+
+def _parse_args() -> argparse.Namespace:
+    """Parse optional arguments for LSTM training."""
+    parser = argparse.ArgumentParser(
+        description="Train LSTM model for predictive maintenance"
+    )
+    parser.add_argument(
+        "--max-train-samples",
+        type=int,
+        default=None,
+        help=(
+            "Limit number of training sequences for a faster test run. "
+            "E.g. --max-train-samples 100000. Default: use all sequences."
+        ),
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=30,
+        help="Maximum training epochs (default: 30)",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=256,
+        help="Mini-batch size (default: 256)",
+    )
+    return parser.parse_args()
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    args = _parse_args()
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = MODELS_DIR / "lstm_model.h5"
+
+    # Support both .keras (TF 2.12+) and legacy .h5 format
+    checkpoint_path = MODELS_DIR / "lstm_model.keras"
 
     # Load and reshape data
     X_train_raw, y_train = _load_split("train")
     X_val_raw, y_val = _load_split("val")
 
     print(f"Raw train shape: {X_train_raw.shape}")
-    X_train, y_train_seq = create_sequences(X_train_raw, y_train)
+
+    # Subsample raw rows BEFORE creating sequences so we never materialise the
+    # full 859k x (60 x 95) array (~19 GB).
+    if args.max_train_samples and (args.max_train_samples + SEQUENCE_LENGTH) < len(X_train_raw):
+        rng = np.random.default_rng(SEED)
+        n_valid_starts = len(X_train_raw) - SEQUENCE_LENGTH
+        starts = np.sort(rng.choice(n_valid_starts, size=args.max_train_samples, replace=False))
+        # Advanced indexing: shape (max_train_samples, SEQUENCE_LENGTH)
+        row_idx = starts[:, None] + np.arange(SEQUENCE_LENGTH)
+        X_train = X_train_raw[row_idx].astype(np.float32)
+        y_train_seq = y_train[starts + SEQUENCE_LENGTH].astype(np.float32)
+        print(f"Sampled {X_train.shape[0]:,} train sequences (shape {X_train.shape})")
+    else:
+        X_train, y_train_seq = create_sequences(X_train_raw, y_train)
+        print(f"Sequence train shape: {X_train.shape}")
+
     X_val, y_val_seq = create_sequences(X_val_raw, y_val)
-    print(f"Sequence train shape: {X_train.shape}")
+    print(f"Sequence val shape: {X_val.shape}")
 
     n_features = X_train.shape[2]
     model = build_model(n_features)
     model.summary()
 
     history = train_model(
-        model, X_train, y_train_seq, X_val, y_val_seq, checkpoint_path
+        model,
+        X_train,
+        y_train_seq,
+        X_val,
+        y_val_seq,
+        checkpoint_path,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
     )
 
     evaluate_model(model, X_val, y_val_seq, split_name="Validation")

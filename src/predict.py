@@ -9,7 +9,7 @@ Usage
     python src/predict.py --machine Machine_1 --model xgboost
 
 The script:
-    1. Loads the trained model (LSTM by default, falls back to XGBoost).
+        1. Loads the trained model (LSTM by default, falls back to XGBoost or saved Keras model).
     2. Reads the last N rows of the sensor CSV for the requested machine.
     3. Runs preprocessing and feature engineering on the input slice.
     4. Outputs a human-readable prediction report.
@@ -147,7 +147,7 @@ def _predict_lstm(X: pd.DataFrame, model_path: Path) -> float:
 
     Args:
         X:          Feature DataFrame.
-        model_path: Path to the ``.h5`` file.
+        model_path: Path to the saved Keras model file.
 
     Returns:
         Failure probability (float in [0, 1]).
@@ -277,7 +277,7 @@ def main() -> None:
     probability: float = 0.0
 
     if model_choice == "lstm":
-        lstm_path = MODELS_DIR / "lstm_model.h5"
+        lstm_path = MODELS_DIR / "lstm_model.keras"
         if lstm_path.exists():
             model_name_display = "LSTM"
             probability = _predict_lstm(df_eng, lstm_path)

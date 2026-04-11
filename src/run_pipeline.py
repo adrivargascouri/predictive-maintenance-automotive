@@ -54,6 +54,24 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run SHAP explainability for XGBoost and export figures to assets/images",
     )
+    parser.add_argument(
+        "--lstm-max-train-samples",
+        type=int,
+        default=None,
+        help="Optional cap on LSTM training sequences for faster CPU runs",
+    )
+    parser.add_argument(
+        "--lstm-epochs",
+        type=int,
+        default=None,
+        help="Optional epoch override passed to src.models.lstm_model",
+    )
+    parser.add_argument(
+        "--lstm-batch-size",
+        type=int,
+        default=None,
+        help="Optional batch-size override passed to src.models.lstm_model",
+    )
     return parser.parse_args()
 
 
@@ -71,7 +89,15 @@ def main() -> None:
     _run_module("src.models.baseline")
 
     if not args.skip_lstm:
-        _run_module("src.models.lstm_model")
+        lstm_args: list[str] = []
+        if args.lstm_max_train_samples is not None:
+            lstm_args.extend(["--max-train-samples", str(args.lstm_max_train_samples)])
+        if args.lstm_epochs is not None:
+            lstm_args.extend(["--epochs", str(args.lstm_epochs)])
+        if args.lstm_batch_size is not None:
+            lstm_args.extend(["--batch-size", str(args.lstm_batch_size)])
+
+        _run_module("src.models.lstm_model", lstm_args)
     else:
         print("\n>>> Skipping LSTM step (--skip-lstm enabled)")
 

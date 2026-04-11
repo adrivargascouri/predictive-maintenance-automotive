@@ -251,7 +251,7 @@ def evaluate_all_models() -> pd.DataFrame:
         )
 
     # Optional: LSTM
-    lstm_path = MODELS_DIR / "lstm_model.h5"
+    lstm_path = MODELS_DIR / "lstm_model.keras"
     if lstm_path.exists():
         try:
             import tensorflow as tf
