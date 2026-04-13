@@ -3,6 +3,7 @@
 Termine un proyecto end-to-end de Machine Learning para mantenimiento predictivo en una linea automotriz.
 
 Que construye este proyecto:
+
 - Simulacion de telemetria industrial multimaquina (temperatura, vibracion, presion, rpm, corriente)
 - Prediccion de fallas con horizonte de 48 horas
 - Comparacion de modelos Random Forest, XGBoost y LSTM
@@ -10,6 +11,7 @@ Que construye este proyecto:
 - Salida estilo producto y demo interactiva con Streamlit
 
 Resultado principal:
+
 - XGBoost logro el mejor balance para el caso de uso, con alto recall y F1 para minimizar fallas no detectadas
 
 Stack:
