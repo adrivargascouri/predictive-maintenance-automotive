@@ -10,6 +10,17 @@ End-to-end predictive maintenance system for industrial machinery using time-ser
 training classical ML baselines (Random Forest, XGBoost) and a deep-learning LSTM model to predict
 machine failures **48 hours in advance**.
 
+## Project Highlights
+
+- End-to-end predictive maintenance workflow from synthetic telemetry generation to actionable
+  maintenance recommendations.
+- Seven notebooks fully populated with analysis, visualisations, model comparison, and
+  explainability outputs.
+- Modular production-style codebase under `src/` for simulation, preprocessing, features,
+  modelling, evaluation, and inference.
+- Explainability layer powered by SHAP to support transparent, auditable decision-making.
+- Interactive Streamlit demo for model selection, risk scoring, and sensor-trend inspection.
+
 ---
 
 ## Motivation / Problem Statement
@@ -415,3 +426,16 @@ streamlit run demo_streamlit.py
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## Final Delivery Checklist
+
+- [x] End-to-end pipeline implemented and validated.
+- [x] Baseline models (Random Forest, XGBoost) trained and compared.
+- [x] LSTM model trained and integrated into evaluation/prediction flow.
+- [x] Seven notebooks completed with executed outputs.
+- [x] SHAP explainability assets generated and documented.
+- [x] Product-style prediction output implemented.
+- [x] Streamlit demo added with run instructions.
+- [x] README finalised for interview-ready portfolio presentation.
