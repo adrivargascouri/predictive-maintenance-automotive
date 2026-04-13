@@ -209,6 +209,13 @@ The demo lets you:
 - see recommended maintenance action
 - inspect recent sensor trends in real time
 
+Demo screenshot:
+
+![Streamlit Demo](assets/images/demo_streamlit.png)
+
+The interface shows machine selection, model choice, 48h failure probability, risk level, and
+recent sensor trends in a single operational view.
+
 ---
 
 ## Key Results
